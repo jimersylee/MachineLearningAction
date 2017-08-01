@@ -2,6 +2,12 @@
 from numpy import *
 import operator
 
+
+def createDataSet():
+    group = array([[1.0, 1.1], [1.0, 1.0], [0, 0], [0, 0.1]])
+    labels = ['A', 'A', 'B', 'B']
+    return group, labels
+
 def img2vector(filename):
     # 创建向量
 
@@ -19,6 +25,10 @@ def img2vector(filename):
 
     return returnVector
 
+"""
+分类器
+
+"""
 def classify0(inX,dataSet,labels,k):
 
     # 获取样本数据数量
@@ -31,5 +41,27 @@ def classify0(inX,dataSet,labels,k):
     sqDistance=sqDiffMat.sum(axis=1)
 
     # 取平方根,得到距离向量
+    distances=sqDistance**0.5
+
+    #按照距离从低到高排序
+    sortedDistIndicies=distances.argsort()
+    classCount={}
+
+    # 依次取出最近的样本数据
+    for i in range(k):
+        # 记录该样本数据所属的类别
+        voteIlabel=labels[sortedDistIndicies[i]]
+        classCount[voteIlabel]=classCount.get(voteIlabel,0)+1
+
+    # 对类别出现的频次进行排序,从高到低
+    sortedClassCount=sorted(classCount.iteritems(),key=operator.itemgetter(1),reverse=True)
+
+    #返回出现频次最高的类别
+    return sortedClassCount[0][0]
+
+
+
+
+
 
 
