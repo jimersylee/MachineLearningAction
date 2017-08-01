@@ -1,6 +1,7 @@
 # coding:utf8
 from numpy import *
 import operator
+import listdir
 
 
 def createDataSet():
@@ -58,6 +59,15 @@ def classify0(inX,dataSet,labels,k):
 
     #返回出现频次最高的类别
     return sortedClassCount[0][0]
+
+
+
+def handwritingClassTest():
+    # 样本数据的类标签列表
+    hwLabels=[]
+
+    # 样本数据文件列表
+    traningFileList=listdir('')
 
 
 
