@@ -1,7 +1,7 @@
 # coding:utf8
 from numpy import *
 import operator
-import listdir
+from os import listdir
 
 
 def createDataSet():
@@ -67,7 +67,83 @@ def handwritingClassTest():
     hwLabels=[]
 
     # 样本数据文件列表
-    traningFileList=listdir('')
+    trainingFileList=listdir('digits/trainingDigits')
+    m=len(trainingFileList)
+
+    # 初始化样本数据矩阵(M*1024)
+    trainingMat=zeros(m,1024)
+    # 依次读取所有样本数据到数据矩阵
+    for i in range(m):
+        # 提取文件名中的数据
+        fileNameStr=trainingFileList[i]
+        fileStr=fileNameStr.split('.')[0]
+        classNumStr=int(fileStr.split('_')[0])
+        hwLabels.append(classNumStr)
+
+        # 将样本数据存入矩阵
+        trainingMat[i,:]=img2vector('digits/trainingDigits/%s' %fileNameStr)
+
+    # 循环读取测试数据
+    testFileList=listdir('digits/testDigits')
+
+    # 初始化错误率
+    errorCount=0.0
+    mTest=len(testFileList)
+
+    # 循环测试每个测试数据文件
+    for i in range(mTest):
+        # 提取文件中的名字
+        fileNameStr=testFileList[i]
+        fileStr=fileNameStr.split('.')[0]
+        classNumStr=int(fileStr.split('_')[0])
+
+        # 提取数据向量
+        vectorUnderTest=img2vector('digits/testDigits/%s' %fileNameStr)
+
+        # 对数据文件进行分类
+        classifierResult=classify0(vectorUnderTest,trainingMat,hwLabels,3)
+
+        # 打印KNN算法分类结果和真实的分类
+        print "the classifier came back with: %d, the real answer is: %d" %(classifierResult,classNumStr)
+
+        # 判断KNN算法结果是否准确
+        if (classifierResult!= classNumStr):
+            errorCount+=1.0
+
+    # 打印错误率
+    print "\n the total number of errors is: %d" %errorCount
+    print "\n total error rate is: %f" %(errorCount/float(mTest))
+
+
+
+handwritingClassTest()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
