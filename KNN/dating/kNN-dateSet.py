@@ -49,8 +49,8 @@ def autoNorm(dataSet):
             range:取值范围
             minVals:最小值
     """
-    minVals = dataSet.min(0) # 0代表第一列,取得第一列最小值
-    maxVals = dataSet.max(0) # 取得第一列最大值
+    minVals = dataSet.min(0)  # 0代表第一列,取得第一列最小值
+    maxVals = dataSet.max(0)  # 取得第一列最大值
     ranges = maxVals - minVals # 可能的取值范围
     normDataSet = zeros(shape(dataSet)) # 创建新的返回矩阵
     m = dataSet.shape[0]
@@ -103,6 +103,7 @@ def showLable():
     plt.xlabel("Percentage of Time Spent Playing Video Games")
     plt.ylabel("Liters of Icc Cream Consumed Per Week")
     plt.show()
+
 
 def showClass():
     """
