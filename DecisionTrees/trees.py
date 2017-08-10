@@ -1,6 +1,7 @@
 # coding:utf-8
 from math import log
 import operator
+import matplotlib.pyplot as plt
 
 
 def calcShannonEnt(dataSet):
@@ -39,7 +40,7 @@ def createDataSet():
         [0, 1, 'no']
     ]
 
-    _labels = ['不浮出水面能否生存', '是否有脚蹼']
+    _labels = ['no surfacing', 'flippers']
     return _dataSet, _labels
 
 
@@ -150,6 +151,7 @@ def majorityCnt(classList):
     """
     类似classify0部分的投票表决
     创建键值为classList中唯一值的数据字典,字典对象存储了classList中每个类标签出现的频率,最后利用operator操作键值排序字典,返回出现次数最多的分类名称
+    :rtype: str
     :param classList: 分类名称的列表
     :return: 返回出现次数最多的分类名称
     """
@@ -161,3 +163,37 @@ def majorityCnt(classList):
 
     sortedClassCount = sorted(classCount.iteritems(), key=operator.itemgetter(1), reverse=True)
     return sortedClassCount[0][0]
+
+
+def createTree(dataSet, labels):
+    """
+    创建树,使用了递归
+    :param dataSet:数据集
+    :param labels: 分类标签
+    :return: 树结构
+    """
+
+    classList = [example[-1] for example in dataSet]  # 将数据集中的每一行的最后一个元素的值取出生成类别列表classList
+    if classList.count(classList[0]) == len(classList):  # 递归停止条件1
+        return classList[0]  # 类别完全相同时停止继续划分
+    if len(dataSet[0]) == 1:  # 递归停止条件2
+        return majorityCnt(classList)  # 遍历完所有特征时返回出现次数最多的
+    bestFeat = chooseBestFeatureToSplit(dataSet)  # 选择最好的划分特征位
+    bestFeatLabel = labels[bestFeat]  # 取出最好的标签
+    myTree = {bestFeatLabel: {}}  # 初始化一个tree字典
+    del (labels[bestFeat])  # 删除最好的标签,防止树的下一个节点还使用此标签
+    featValues = [example[bestFeat] for example in dataSet]  # 创建最好的特征位的值所构建的list
+    uniqueVals = set(featValues)  # 生成唯一的特征位的值构成的集合set
+    for value in uniqueVals:
+        subLabels = labels[:]  # 复制所有标签,且树不会和已经存在的标签搞混
+        myTree[bestFeatLabel][value] = createTree(splitDataSet(dataSet, bestFeat, value), subLabels)  # 递归创建树
+    return myTree
+
+
+#  构建树测试
+print "构建树测试"
+myData, labels = createDataSet()
+myTree = createTree(myData, labels)
+print myTree
+
+

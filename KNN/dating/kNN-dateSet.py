@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-'''
+"""
 约会数据kNN
-'''
+"""
+
 from numpy import *
-import matplotlib
 import matplotlib.pyplot as plt
 import operator
 
