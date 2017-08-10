@@ -7,6 +7,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import operator
 
+
 def classify0(inX, dataSet, labels, k):
     dataSetSize = dataSet.shape[0]
     diffMat = tile(inX, (dataSetSize, 1)) - dataSet
@@ -51,8 +52,8 @@ def autoNorm(dataSet):
     """
     minVals = dataSet.min(0)  # 0代表第一列,取得第一列最小值
     maxVals = dataSet.max(0)  # 取得第一列最大值
-    ranges = maxVals - minVals # 可能的取值范围
-    normDataSet = zeros(shape(dataSet)) # 创建新的返回矩阵
+    ranges = maxVals - minVals  # 可能的取值范围
+    normDataSet = zeros(shape(dataSet))  # 创建新的返回矩阵
     m = dataSet.shape[0]
     normDataSet = dataSet - tile(minVals, (m, 1))
     normDataSet = normDataSet / tile(ranges, (m, 1))  # element wise divide
@@ -74,7 +75,6 @@ def datingClassTest():
     print errorCount
 
 
-
 def showNormal():
     """
     最基本散点图
@@ -88,6 +88,7 @@ def showNormal():
     plt.xlabel("Percentage of Time Spent Playing Video Games")
     plt.ylabel("Liters of Icc Cream Consumed Per Week")
     plt.show()
+
 
 def showLable():
     """
