@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
-# @Time    : 17-8-14 上午11:28
+# @Time    : 17-8-21 上午11:01
 # @Author  : Jimersy Lee
 # @Site    : 
-# @File    : bayes.py
+# @File    : filterMail.py
 # @Software: PyCharm
-# @Desc    :
+# @Desc    :使用朴素贝叶斯过滤垃圾邮件
 
+import re
 from numpy import *
 
 
@@ -121,47 +122,96 @@ def classifyNormalBayes(vec2Classify, p0Vec, p1Vec, pClass1):
         return 0
 
 
-def testingNormalBayes():
+def TestMail2Tokens():
+    return mail2Tokens("email/ham/6.txt")
+
+
+def TestText2Tokens():
+    mySent = 'This book is the best book!'
+    print mySent.split()
+    #  ['This', 'book', 'is', 'the', 'best', 'book!']
+    # 切分的结果不错,但是标点也被当成了词的一部分
+    # 使用正则表达式来切分句子,其中分隔符是除了单词,数字外的任意字符串
+    regEx = re.compile('\\W*')
+    mySent = 'This book is the best book!'
+    listOfTokens = regEx.split(mySent)
+    formatTokens = []
+    for tok in listOfTokens:
+        if len(tok) > 0:  # 过滤空字符串
+            formatTokens.append(tok.lower())  # 大写转换成小写
+    return formatTokens
+
+
+def mail2Tokens(filePath):
     """
-    测试朴素贝叶斯分类算法的效果
+    邮件转换为词条
+    :param filePath:文件路径
+    :return: 词条数组
+    """
+    emailText = open(filePath).read()
+    return text2Tokens(emailText)
+
+
+def text2Tokens(text):
+    """
+    文本内容转换为词条
+    1.过滤空字符串
+    2.大写转换为小写
+    :param text: 文本内容
+    :return: 词条数组
+    """
+    regEx = re.compile('\\W*')
+    listOfTokens = regEx.split(text)
+    formatTokens = []
+    for tok in listOfTokens:
+        if len(tok) > 0:  # 过滤空字符串
+            formatTokens.append(tok.lower())  # 大写转换成小写
+    return formatTokens
+
+
+def testSpam():
+    """
+    测试垃圾邮件分类正确率
     :return:
     """
-    listOfPosts, listClasses = loadDataSet()
-    myVocabList = createVocabList(listOfPosts)
-    trainMat = []
-    for postInDoc in listOfPosts:
-        trainMat.append(setOfWords2Vec(myVocabList, postInDoc))
-    p0V, p1V, pAb = trainNormalBayes0(array(trainMat), array(listClasses))
-    testEntry = ['love', 'my', 'dalmation']
-    thisDoc = array(setOfWords2Vec(myVocabList, testEntry))
-    print testEntry, 'classified as:', classifyNormalBayes(thisDoc, p0V, p1V, pAb)
-    testEntry = ['stupid', 'garbage']
-    thisDoc = array(setOfWords2Vec(myVocabList, testEntry))
-    print testEntry, 'classified as:', classifyNormalBayes(thisDoc, p0V, p1V, pAb)
+    docList = []
+    classList = []
+    fullText = []
+    for i in range(1, 26):
+        wordList = mail2Tokens("email/spam/%d.txt" % i)
+        docList.append(wordList)
+        fullText.extend(wordList)
+        classList.append(1)
+        wordList = mail2Tokens("email/ham/%d.txt" % i)
+        docList.append(wordList)
+        fullText.extend(wordList)
+        classList.append(0)
 
+    vocabList = createVocabList(docList)
+    trainingSet = range(50)
+    testSet = []
+    for i in range(10):
+        randIndex = int(random.uniform(0, len(trainingSet)))
+        testSet.append(trainingSet[randIndex])
+        del (trainingSet[randIndex])
+
+    trainMat = []
+    trainClasses = []
+    for docIndex in trainingSet:
+        trainMat.append(setOfWords2Vec(vocabList, docList[docIndex]))
+        trainClasses.append(classList[docIndex])
+
+    p0V, p1V, pSpam = trainNormalBayes0(array(trainMat), array(trainClasses))
+    errorCount = 0
+    for docIndex in testSet:
+        wordVector = setOfWords2Vec(vocabList, docList[docIndex])
+        if classifyNormalBayes(array(wordVector), p0V, p1V, pSpam) != classList[docIndex]:
+            errorCount += 1
+    print 'the error rate is: ', float(errorCount / len(testSet))
 
 # 测试代码
-listOfPosts, listClasses = loadDataSet()
-myVocabList = createVocabList(listOfPosts)
-print myVocabList  # 输出的list没有重复的单词
+# TestText2Tokens()
+# print TestMail2Tokens()
 
-# 检测每篇文章中哪些词条在字典中出现过
-
-print setOfWords2Vec(myVocabList, listOfPosts[0])  # 第1篇文章哪些单词出现过
-print setOfWords2Vec(myVocabList, listOfPosts[3])  # 第4篇文章哪些单词出现过
-
-# 测试朴素贝叶斯分类器训练函数
-# 构建训练矩阵
-trainMat = []  # 每篇文档中词是否出现的向量组成的矩阵
-for postInDoc in listOfPosts:
-    trainMat.append(setOfWords2Vec(myVocabList, postInDoc))
-# 计算属于侮辱性文档的概率以及两个类别的概率向量
-p0V, p1V, pAbusive = trainNormalBayes0(trainMat, listClasses)
-print "trainMat=" + str(trainMat)
-print "p0V=" + str(p0V)
-print "p1V=" + str(p1V)
-print "pAbusive=" + str(pAbusive)
-
-# 测试分类的效果
-print "testingNormalBayes"
-testingNormalBayes()
+# 测试训练结果
+testSpam()
