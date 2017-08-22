@@ -1,30 +1,12 @@
 # -*- coding: utf-8 -*-
-# @Time    : 17-8-21 上午11:01
+# @Time    : 17-8-14 上午11:28
 # @Author  : Jimersy Lee
 # @Site    : 
-# @File    : filterMail.py
+# @File    : bayes.py
 # @Software: PyCharm
-# @Desc    :使用朴素贝叶斯过滤垃圾邮件
+# @Desc    :
 
-import re
 from numpy import *
-
-
-def loadDataSet():
-    """
-    定义一些数据,返回言论单词,以及言论性质
-    :return:
-    """
-    postingList = [
-        ['my', 'dog', 'has', 'flea', 'problem', 'help', 'please'],
-        ['maybe', 'not', 'take', 'him', 'to', 'dog', 'park', 'stupid'],
-        ['my', 'dalmation', 'is', 'so', 'cute', 'I', 'love', 'him'],
-        ['stop', 'posting', 'stupid', 'worthless', 'garbage'],
-        ['mr', 'licks', 'ate', 'my', 'steak', 'how', 'to', 'stop', 'him'],
-        ['quit', 'buying', 'worthless', 'dog', 'food', 'stupid']
-    ]
-    classVec = [0, 1, 0, 1, 0, 1]  # 1代表侮辱性文字 0代表正常言论
-    return postingList, classVec
 
 
 def createVocabList(dataSet):
@@ -42,8 +24,8 @@ def createVocabList(dataSet):
 def setOfWords2Vec(vocabList, inputSet):
     """
     词集转为向量,用于词集模型
-    :param vocabList:总词汇数组
-    :param inputSet:输入的词组
+    :param vocabList:
+    :param inputSet:
     :return:
     """
     returnVec = [0] * len(vocabList)  # 创建一个其中所含元素都为1的向量
@@ -122,36 +104,6 @@ def classifyNormalBayes(vec2Classify, p0Vec, p1Vec, pClass1):
         return 0
 
 
-def TestMail2Tokens():
-    return mail2Tokens("email/ham/6.txt")
-
-
-def TestText2Tokens():
-    mySent = 'This book is the best book!'
-    print mySent.split()
-    #  ['This', 'book', 'is', 'the', 'best', 'book!']
-    # 切分的结果不错,但是标点也被当成了词的一部分
-    # 使用正则表达式来切分句子,其中分隔符是除了单词,数字外的任意字符串
-    regEx = re.compile('\\W*')
-    mySent = 'This book is the best book!'
-    listOfTokens = regEx.split(mySent)
-    formatTokens = []
-    for tok in listOfTokens:
-        if len(tok) > 0:  # 过滤空字符串
-            formatTokens.append(tok.lower())  # 大写转换成小写
-    return formatTokens
-
-
-def mail2Tokens(filePath):
-    """
-    邮件转换为词条
-    :param filePath:文件路径
-    :return: 词条数组
-    """
-    emailText = open(filePath).read()
-    return text2Tokens(emailText)
-
-
 def text2Tokens(text):
     """
     文本内容转换为词条
@@ -160,6 +112,7 @@ def text2Tokens(text):
     :param text: 文本内容
     :return: 词条数组
     """
+    import re
     regEx = re.compile('\\W*')
     listOfTokens = regEx.split(text)
     formatTokens = []
@@ -169,54 +122,68 @@ def text2Tokens(text):
     return formatTokens
 
 
-def testSpam():
+def calcMostFreq(vocabList, fullText, number=30.0):
     """
-    测试垃圾邮件分类正确率
+    计算出现频率最高的前30个词汇
+    :param vocabList: 总的词汇表
+    :param fullText: 文章内容
+    :param number:取前几位,默认30位
     :return:
     """
-    docList = []
-    classList = []
-    fullText = []
-    for i in range(1, 26):
-        wordList = mail2Tokens("email/spam/%d.txt" % i)
+    import operator  # 导入操作包
+    freqDict = {}  # 初始化词频字典
+    for token in vocabList:
+        freqDict[token] = fullText.count(token)  # 某个词作为key,出现的次数为value
+
+    sortedFreq = sorted(freqDict.iteritems(), key=operator.itemgetter(1), reverse=True)  # 对词频字典进行排序
+    return sortedFreq[:number]  # 返回词频字典的前30位
+
+
+def localWords(feed1, feed0):
+    docList = []  # (文章的单词组成的数组)作为成员的数组 ,[['hello','world'],['test','something']]
+    classList = []  # 分类数组
+    fullText = []  # 文章的单词组成的数组,每个单词作为数组成员 ['hello','world','test','something']
+    minLen = min(len(feed1['entries']), len(feed0['entries']))  # 获取最小长度,防止数组越界
+    for i in range(minLen):
+        # feed1的内容进行处理
+        wordList = text2Tokens(feed1['entries'][i]['summary'])
         docList.append(wordList)
         fullText.extend(wordList)
         classList.append(1)
-        wordList = mail2Tokens("email/ham/%d.txt" % i)
+        # feed0的内容进行处理
+        wordList = text2Tokens(feed0['entries'][i]['summary'])
         docList.append(wordList)
         fullText.extend(wordList)
         classList.append(0)
 
     vocabList = createVocabList(docList)
-    #  初始化50篇文章,随机删除10个索引,还剩40篇,用这40篇去训练,10篇去用来测试训练结果
-    trainingSet = range(50)  # 生成50个成员的训练集索引
-    testSet = []  # 初始化用来测试的索引集合
-    for i in range(10):
-        randIndex = int(random.uniform(0, len(trainingSet)))
-        testSet.append(trainingSet[randIndex])  # 训练集加入10篇随机的
-        del (trainingSet[randIndex])  # 测试集删除10篇随机的
-    # 上述操作,随机选择数据的一部分作为训练集,而剩余部分作为测试集的过程称为 "留存交叉验证(hold-out cross validation)"
+    top30Words = calcMostFreq(vocabList, fullText)
+    #  去除出现次数最多的那些词
+    for pairW in top30Words:
+        if pairW[0] in vocabList:
+            vocabList.remove(pairW[0])  # ??
 
-    trainMat = []  # 初始化训练矩阵
-    trainClasses = []  # 初始化训练分类矩阵
+    trainingSet = range(2 * minLen)
+    testSet = []
+    # 对训练数据与测试数据进行留存交叉验证的处理
+    for i in range(20):
+        randomIndex = int(random.uniform(0, len(trainingSet)))
+        testSet.append(trainingSet[randomIndex])
+        del (trainingSet[randomIndex])
+    trainMat = []
+    trainingClass = []
     for docIndex in trainingSet:
-        trainMat.append(setOfWords2Vec(vocabList, docList[docIndex]))  # 训练矩阵中加入文章词汇处理后的向量
-        trainClasses.append(classList[docIndex])  # 训练分类矩阵中加入已知的类别
-    # 获得训练结果
-    p0V, p1V, pSpam = trainNormalBayes0(array(trainMat), array(trainClasses))
+        trainMat.append(bagOfWords2Vec(vocabList, trainingSet[docIndex]))
+        trainingClass.append(classList[docIndex])
+
+    p0V, p1V, pClass1 = trainNormalBayes0(array(trainMat), array(trainingClass))
     errorCount = 0
     for docIndex in testSet:
-        wordVector = setOfWords2Vec(vocabList, docList[docIndex])
-        classifyResult = classifyNormalBayes(array(wordVector), p0V, p1V, pSpam)
+        wordVect = bagOfWords2Vec(vocabList, docList[docIndex])
+        classifyResult = classifyNormalBayes(wordVect, p0V, p1V, pClass1)
         actualResult = classList[docIndex]
         if classifyResult != actualResult:
             errorCount += 1
+
     print 'the error rate is: ', float(errorCount / len(testSet))
-
-
-# 测试代码
-# TestText2Tokens()
-# print TestMail2Tokens()
-
-# 测试训练结果
-testSpam()
+    return vocabList, p0V, p1V
