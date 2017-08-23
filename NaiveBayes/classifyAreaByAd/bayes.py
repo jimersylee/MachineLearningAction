@@ -7,6 +7,7 @@
 # @Desc    :
 
 from numpy import *
+import feedparser
 
 
 def createVocabList(dataSet):
@@ -122,7 +123,7 @@ def text2Tokens(text):
     return formatTokens
 
 
-def calcMostFreq(vocabList, fullText, number=30.0):
+def calcMostFreq(vocabList, fullText):
     """
     计算出现频率最高的前30个词汇
     :param vocabList: 总的词汇表
@@ -136,10 +137,16 @@ def calcMostFreq(vocabList, fullText, number=30.0):
         freqDict[token] = fullText.count(token)  # 某个词作为key,出现的次数为value
 
     sortedFreq = sorted(freqDict.iteritems(), key=operator.itemgetter(1), reverse=True)  # 对词频字典进行排序
-    return sortedFreq[:number]  # 返回词频字典的前30位
+    return sortedFreq[:30]  # 返回词频字典的前30位
 
 
 def localWords(feed1, feed0):
+    """
+    使用两个RSS源作为参数
+    :param feed1:
+    :param feed0:
+    :return:
+    """
     docList = []  # (文章的单词组成的数组)作为成员的数组 ,[['hello','world'],['test','something']]
     classList = []  # 分类数组
     fullText = []  # 文章的单词组成的数组,每个单词作为数组成员 ['hello','world','test','something']
@@ -159,9 +166,9 @@ def localWords(feed1, feed0):
     vocabList = createVocabList(docList)
     top30Words = calcMostFreq(vocabList, fullText)
     #  去除出现次数最多的那些词
-    for pairW in top30Words:
+    for pairW in top30Words:  # pairW二维数组 0位置:单词 1位置:出现次数
         if pairW[0] in vocabList:
-            vocabList.remove(pairW[0])  # ??
+            vocabList.remove(pairW[0])  #
 
     trainingSet = range(2 * minLen)
     testSet = []
@@ -173,7 +180,7 @@ def localWords(feed1, feed0):
     trainMat = []
     trainingClass = []
     for docIndex in trainingSet:
-        trainMat.append(bagOfWords2Vec(vocabList, trainingSet[docIndex]))
+        trainMat.append(bagOfWords2Vec(vocabList, docList[docIndex]))
         trainingClass.append(classList[docIndex])
 
     p0V, p1V, pClass1 = trainNormalBayes0(array(trainMat), array(trainingClass))
@@ -185,5 +192,33 @@ def localWords(feed1, feed0):
         if classifyResult != actualResult:
             errorCount += 1
 
-    print 'the error rate is: ', float(errorCount / len(testSet))
+    print 'the error rate is: ', float(errorCount) / len(testSet)
     return vocabList, p0V, p1V
+
+
+def getTopWords(ny, sf):
+    import operator
+    vocabList, p0V, p1V = localWords(ny, sf)
+    topNY = []
+    topSF = []
+    for i in range(len(p0V)):
+        if p0V[i] > -6.0:
+            topSF.append((vocabList[i], p0V[i]))
+        if p1V[i] > -6.0:
+            topNY.append((vocabList[i], p1V[i]))
+    sortedSF = sorted(topSF, key=lambda pair: pair[1], reverse=True)
+    print "SF============================================="
+    for item in sortedSF:
+        print item[0]
+    print "NY============================================="
+    sortedNY = sorted(topNY, key=lambda pair: pair[1], reverse=True)
+    for item in sortedNY:
+        print item[0]
+
+
+# 测试代码
+ny = feedparser.parse('http://newyork.craigslist.org/stp/index.rss')
+sf = feedparser.parse('http://sfbay.craiglist.org/stp/index.rss')
+vocabList, pSF, pNY = localWords(ny, sf)
+
+getTopWords(ny, sf)

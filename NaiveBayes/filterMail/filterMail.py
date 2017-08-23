@@ -211,7 +211,7 @@ def testSpam():
         actualResult = classList[docIndex]
         if classifyResult != actualResult:
             errorCount += 1
-    print 'the error rate is: ', float(errorCount / len(testSet))
+    print 'the error rate is: ', float(errorCount) / len(testSet)
 
 
 # 测试代码
