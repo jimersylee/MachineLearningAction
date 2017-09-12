@@ -48,19 +48,84 @@ def clipAlpha(aj, H, L):
 
 
 def smoSimple(dataMatIn, classLabels, C, toler, maxIter):
+    """
+    smo简易算法
+    :param dataMatIn:数据集
+    :param classLabels: 类别标签
+    :param C: 常数C
+    :param toler: 容错率
+    :param maxIter: 取消前最大迭代次数
+    :return:
+    """
     dataMatrix = mat(dataMatIn)
     labelMat = mat(classLabels).transpose()
     b = 0
     m, n = shape(dataMatrix)
     alphas = mat(zeros((m, 1)))
-    iter=0
-    while iter<maxIter:
-        alphaPairsChanged=0
+    iter = 0
+    while iter < maxIter:
+        alphaPairsChanged = 0
         for i in range(m):
-            fXi=float(multiply(alphas,labelMat).T*(dataMatrix*dataMatrix[i,:].T))+b
-            Ei=fXi-float(labelMat[i])
-            if((labelMat[i]*Ei<-toler) and (alphas[i]<C)) or ((labelMat[i]*Ei>toler) and (alphas[i]>0)):
-                j=selectJrand(i,m)
-                fXj=float(multiply(alphas,labelMat).T*(dataMatrix*dataMatrix[j,:].T))+b
-                Ej=fXj-float(labelMat[j])
-                # todo
+            fXi = float(multiply(alphas, labelMat).T * (dataMatrix * dataMatrix[i, :].T)) + b
+            Ei = fXi - float(labelMat[i])
+            if ((labelMat[i] * Ei < -toler) and (alphas[i] < C)) or (
+                        (labelMat[i] * Ei > toler) and (alphas[i] > 0)):  # 如果alpha可以更改进入优化过程
+                j = selectJrand(i, m)  # 随机选择第二个alpha
+                fXj = float(multiply(alphas, labelMat).T * (dataMatrix * dataMatrix[j, :].T)) + b
+                Ej = fXj - float(labelMat[j])
+                alphaIold = alphas[i].copy()
+                alphaJold = alphas[j].copy()
+                # 保证alpha在0和C之间开始
+                if labelMat[i] != labelMat[j]:
+                    L = max(0, alphas[j] - alphas[i])
+                    H = min(C, C + alphas[j] - alphas[i])
+                else:
+                    L = max(0, alphas[j] + alphas[i] - C)
+                    H = min(C, alphas[j] + alphas[i])
+                # 保证alpha在0和C之间结束
+                if L == H:
+                    print "L==H"
+                    continue
+                eta = 2.0 * dataMatrix[i, :] * dataMatrix[j, :].T - dataMatrix[i, :] * dataMatrix[i, :].T - dataMatrix[
+                                                                                                            j,
+                                                                                                            :] * dataMatrix[
+                                                                                                                 j, :].T
+                if eta >= 0:
+                    print "eta>=0"
+                    continue
+                alphas[j] -= labelMat[j] * (Ei - Ej) / eta
+                alphas[j] = clipAlpha(alphas[j], H, L)
+                if abs(alphas[j] - alphaIold) < 0.00001:
+                    print "j not moving enough"
+                    continue
+                alphas[i] += labelMat[j] * labelMat[i] * (alphaJold - alphas[j])  # 对i进行修改,修改量和j相同,但是方向相反
+                b1 = b - Ei - labelMat[i] * (alphas[i] - alphaIold) * \
+                              dataMatrix[i, :] * dataMatrix[i, :].T - labelMat[j] * (alphas[j] - alphaJold) * \
+                                                                      dataMatrix[i, :] * dataMatrix[j, :].T
+                b2 = b - Ej - labelMat[i] * (alphas[i] - alphaIold) * \
+                              dataMatrix[i, :] * dataMatrix[j, :].T - \
+                     labelMat[j] * (alphas[j]) - alphaJold * \
+                                                 dataMatrix[j, :] * dataMatrix[j, :].T
+                if 0 < alphas[i] and (C > alphas[i]):
+                    b = b1
+                elif (0 < alphas[j]) and (C > alphas[j]):
+                    b = b2
+                else:
+                    b = (b1 + b2) / 2
+                alphaPairsChanged += 1
+                print "iter: %d i:%d, pairs changed %d" % (iter, i, alphaPairsChanged)
+        if alphaPairsChanged == 0:
+            iter += 1
+        else:
+            iter = 0
+        print "iteration number: %d" % iter
+    return b, alphas
+
+
+def smoTest():
+    dataMat, labelMat = loadDataSet("testSet.txt")
+    b, alphas = smoSimple(dataMat, labelMat, 0.6, 0.001, 40)
+
+
+
+smoTest()
